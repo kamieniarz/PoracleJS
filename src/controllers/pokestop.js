@@ -23,14 +23,14 @@ class Pokestop extends Controller {
 			(
 				(
 					round(
-						6371000 
+						6371000
 						* acos(cos( radians(${data.latitude}) )
 						* cos( radians( humans.latitude ) )
 						* cos( radians( humans.longitude ) - radians(${data.longitude}) )
 						+ sin( radians(${data.latitude}) )
-						* sin( radians( humans.latitude ) ) 
-						) 
-					) < invasion.distance and invasion.distance != 0) 
+						* sin( radians( humans.latitude ) )
+						)
+					) < invasion.distance and invasion.distance != 0)
 					or
 					(
 						invasion.distance = 0 and (${areastring})
@@ -60,7 +60,6 @@ class Pokestop extends Controller {
 		})
 		return result
 	}
-
 
 	async handle(obj) {
 		let pregenerateTile = false
@@ -108,7 +107,6 @@ class Pokestop extends Controller {
 				this.log.debug(`${data.name} Invasion already disappeared or is about to go away in: ${data.tth.hours}:${data.tth.minutes}:${data.tth.seconds}`)
 				return []
 			}
-
 
 			data.matched = await this.pointInArea([data.latitude, data.longitude])
 
@@ -186,7 +184,6 @@ class Pokestop extends Controller {
 				}
 			}
 
-
 			const whoCares = await this.invasionWhoCares(data)
 
 			this.log.info(`Invasion against ${data.gruntType} appeared and ${whoCares.length} humans cared.`)
@@ -221,7 +218,7 @@ class Pokestop extends Controller {
 					genderData: this.utilData.genders[data.gender],
 					areas: data.matched.map((area) => area.replace(/'/gi, '').replace(/ /gi, '-')).join(', '),
 				}
-				let invasionDts = this.dts.find((template) => template.type === 'invasion' && template.id === cares.template && template.platform === 'discord')
+				let invasionDts = this.dts.find((template) => template.type === 'invasion' && template.id.toString() === cares.template.toString() && template.platform === 'discord')
 				if (!invasionDts) invasionDts = this.dts.find((template) => template.type === 'invasion' && template.default && template.platform === 'discord')
 				if (!invasionDts) {
 					this.log.warn(`Didn't get DTS for 'invasion',  template ${cares.templaste}`)
@@ -260,6 +257,5 @@ class Pokestop extends Controller {
 		}
 	}
 }
-
 
 module.exports = Pokestop

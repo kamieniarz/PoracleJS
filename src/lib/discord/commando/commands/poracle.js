@@ -1,4 +1,3 @@
-
 exports.run = async (client, msg) => {
 	if (!client.config.discord.channels.includes(msg.channel.id)) {
 		return client.log.info(`${msg.author.tag} tried to register in ${msg.channel.name}`)
@@ -6,7 +5,6 @@ exports.run = async (client, msg) => {
 	try {
 		const isRegistered = await client.query.countQuery('humans', { id: msg.author.id })
 		if (isRegistered) {
-
 			await msg.react('👌')
 		} else {
 			await client.query.insertQuery('humans', {
@@ -14,7 +12,7 @@ exports.run = async (client, msg) => {
 			})
 			await msg.react('✅')
 		}
-		const greetingDts = client.dts.find((template) => template.type === 'greeting')
+		const greetingDts = client.dts.find((template) => template.type === 'greeting' && template.default)
 		const view = { prefix: client.config.discord.prefix }
 		const greeting = client.mustache.compile(JSON.stringify(greetingDts.template))
 		await msg.author.send(JSON.parse(greeting(view)))

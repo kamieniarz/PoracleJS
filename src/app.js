@@ -22,7 +22,6 @@ const readDir = util.promisify(fs.readdir)
 
 const telegraf = new Telegraf(config.telegram.token, { channelMode: true })
 
-
 const cache = new NodeCache({ stdTTL: 5400, useClones: false })
 
 const discordCache = new NodeCache({ stdTTL: config.discord.limitSec })
@@ -37,7 +36,6 @@ const monsterData = require('./util/monsters')
 const utilData = require('./util/util')
 const re = require('./util/regex')(translator)
 
-
 const MonsterController = require('./controllers/monster')
 const RaidController = require('./controllers/raid')
 const QuestController = require('./controllers/quest')
@@ -49,7 +47,6 @@ const monsterController = new MonsterController(knex, config, dts, geofence, mon
 const raidController = new RaidController(knex, config, dts, geofence, monsterData, discordCache, translator, mustache, weatherController)
 const questController = new QuestController(knex, config, dts, geofence, monsterData, discordCache, translator, mustache, weatherController)
 const pokestopController = new PokestopController(knex, config, dts, geofence, monsterData, discordCache, translator, mustache, weatherController)
-
 
 fastify.decorate('logger', log)
 fastify.decorate('webhooks', webhooks)
@@ -88,7 +85,6 @@ if (config.telegram.enabled) {
 
 // todo remove lint passing log
 log.debug(telegram)
-
 
 async function run() {
 	if (config.discord.enabled) {
@@ -151,18 +147,19 @@ async function run() {
 
 async function handleAlarms() {
 	if (fastify.hookQueue.length && !workingOnHooks && fastify.monsterController && fastify.raidController && fastify.questController) {
-		if ((Math.random() * 100) > 80) fastify.log.debug(`WebhookQueue is currently ${fastify.hookQueue.length}`)
+		if ((Math.random() * 100) > 80) fastify.logger.debug(`WebhookQueue is currently ${fastify.hookQueue.length}`)
 
 		const hook = fastify.hookQueue.shift()
 		switch (hook.type) {
 			case 'pokemon': {
+				if (config.general.disablePokemon) break
 				fastify.webhooks.info('pokemon', hook.message)
-				if (fastify.cache.has(`${hook.message.encounter_id}_${hook.message.disappear_time}_${hook.message.weight}`)) {
+				if (fastify.cache.has(`${hook.message.encounter_id}_${hook.message.disappear_time}_${hook.message.cp}`)) {
 					fastify.logger.debug(`Wild encounter ${hook.message.encounter_id} was sent again too soon, ignoring`)
 					break
 				}
 
-				fastify.cache.set(`${hook.message.encounter_id}_${hook.message.disappear_time}_${hook.message.weight}`, 'cached')
+				fastify.cache.set(`${hook.message.encounter_id}_${hook.message.disappear_time}_${hook.message.cp}`, 'cached')
 
 				const result = await fastify.monsterController.handle(hook.message)
 				result.forEach((job) => {
@@ -173,6 +170,7 @@ async function handleAlarms() {
 				break
 			}
 			case 'raid': {
+				if (config.general.disableRaid) break
 				fastify.webhooks.info('raid', hook.message)
 				if (fastify.cache.has(`${hook.message.gym_id}_${hook.message.end}_${hook.message.pokemon_id}`)) {
 					fastify.logger.debug(`Raid ${hook.message.gym_id} was sent again too soon, ignoring`)
@@ -191,6 +189,7 @@ async function handleAlarms() {
 			}
 			case 'invasion':
 			case 'pokestop': {
+				if (config.general.disablePokestop) break
 				fastify.webhooks.info('pokestop', hook.message)
 				const incidentExpiration = hook.message.incident_expiration ? hook.message.incident_expiration : hook.message.incident_expire_timestamp
 				if (!incidentExpiration) break
@@ -211,6 +210,7 @@ async function handleAlarms() {
 				break
 			}
 			case 'quest': {
+				if (config.general.disableQuest) break
 				fastify.webhooks.info('quest', hook.message)
 				if (fastify.cache.has(`${hook.message.pokestop_id}_${JSON.stringify(hook.message.rewards)}`)) {
 					fastify.logger.debug(`Quest at ${hook.message.pokestop_name} was sent again too soon, ignoring`)
@@ -229,6 +229,7 @@ async function handleAlarms() {
 				break
 			}
 			case 'weather': {
+				if (config.general.disableWeather) break
 				fastify.webhooks.info('weather', hook.message)
 				if (fastify.cache.has(`${hook.message.s2_cell_id}_${hook.message.time_changed}`)) {
 					fastify.logger.debug(`Weather for ${hook.message.s2_cell_id} was sent again too soon, ignoring`)

@@ -98,10 +98,10 @@ class Worker {
 	}
 
 	async channelAlert(data) {
-		const channel = this.client.channels.cache.get(data.target)
-		const msgDeletionMs = ((data.tth.hours * 3600) + (data.tth.minutes * 60) + data.tth.seconds) * 1000
-		if (!channel) return log.warn(`channel ${data.name} not found`)
 		try {
+			const channel = await this.client.channels.fetch(data.target)
+			const msgDeletionMs = ((data.tth.hours * 3600) + (data.tth.minutes * 60) + data.tth.seconds) * 1000
+			if (!channel) return log.warn(`channel ${data.name} not found`)
 			const msg = await channel.send(data.message.content || '', data.message)
 			if (data.clean) {
 				msg.delete({ timeout: msgDeletionMs, reason: 'Removing old stuff.' })
@@ -117,6 +117,10 @@ class Worker {
 	async webhookAlert(firstData) {
 		const data = firstData
 		if (!data.target.match(hookRegex)) return log.warn(`Webhook, ${data.name} does not look like a link, exiting`)
+		if (data.message.embed && data.message.embed.color) {
+			data.message.embed.color = parseInt(data.message.embed.color.replace(/^#/, ''), 16)
+		}
+
 		if (data.message.embed) data.message.embeds = [data.message.embed]
 		try {
 			await this.axios({

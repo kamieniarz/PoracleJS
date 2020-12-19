@@ -36,14 +36,14 @@ class Controller {
 				return NodeGeocoder({
 					provider: 'openstreetmap',
 					osmServer: this.config.geocoding.providerURL,
-					formatterPattern: this.config.locale.addressformat,
+					formatterPattern: this.config.locale.addressFormat,
 				})
 			}
 			case 'nominatim': {
 				return NodeGeocoder({
 					provider: 'openstreetmap',
 					osmServer: this.config.geocoding.providerURL,
-					formatterPattern: this.config.locale.addressformat,
+					formatterPattern: this.config.locale.addressFormat,
 				})
 			}
 			case 'google': {
@@ -57,7 +57,7 @@ class Controller {
 			{
 				return NodeGeocoder({
 					provider: 'openstreetmap',
-					formatterPattern: this.config.locale.addressformat,
+					formatterPattern: this.config.locale.addressFormat,
 				})
 			}
 		}
@@ -103,11 +103,16 @@ class Controller {
 			ch = { count: 1 }
 		}
 		const ttl = this.discordCache.getTtl(id)
-		this.discordCache.set(id, { count: ch.count + 1 }, Math.floor((ttl - Date.now()) / 1000))
+		const newTtl = Math.floor((ttl - Date.now()) / 1000)
+		if (newTtl > 0) this.discordCache.set(id, { count: ch.count + 1 }, newTtl)
 		return true
 	}
 
 	async geolocate(locationString) {
+		if (this.config.geocoding.provider.toLowerCase() == 'none') {
+			return []
+		}
+
 		try {
 			const geocoder = this.getGeocoder()
 			return await geocoder.geocode(locationString)
@@ -117,6 +122,10 @@ class Controller {
 	}
 
 	async getAddress(locationObject) {
+		if (this.config.geocoding.provider.toLowerCase() == 'none') {
+			return { addr: 'Unknown', flag: '' }
+		}
+
 		const cacheKey = `${String(+locationObject.lat.toFixed(3))}-${String(+locationObject.lon.toFixed(3))}`
 		const cachedResult = geoCache.getKey(cacheKey)
 		if (cachedResult) return cachedResult
@@ -132,7 +141,8 @@ class Controller {
 			geoCache.save(true)
 			return result
 		} catch (err) {
-			throw { source: 'getAddress', error: err }
+			this.log.error('getAddress: failed to fetch data', err)
+			return { addr: 'Unknown', flag: '' }
 		}
 	}
 
@@ -225,7 +235,7 @@ class Controller {
 			default: {
 				const constraints = {
 					humans: 'id',
-					monsters: 'monsters.id, monsters.pokemon_id, monsters.min_iv, monsters.max_iv, monsters.min_level, monsters.max_level, monsters.atk, monsters.def, monsters.sta, monsters.min_weight, monsters.max_weight, monsters.form, monsters.max_atk, monsters.max_def, monsters.max_sta, monsters.gender',
+					monsters: 'monsters.id, monsters.pokemon_id, monsters.min_iv, monsters.max_iv, monsters.min_level, monsters.max_level, monsters.atk, monsters.def, monsters.sta, monsters.form, monsters.gender, monsters.min_weight, monsters.great_league_ranking, monsters.great_league_ranking_min_cp, monsters.ultra_league_ranking, monsters.ultra_league_ranking_min_cp',
 					raid: 'raid.id, raid.pokemon_id, raid.exclusive, raid.level, raid.team',
 					egg: 'egg.id, egg.team, egg.exclusive, egg.level',
 					quest: 'quest.id, quest.reward_type, quest.reward',
